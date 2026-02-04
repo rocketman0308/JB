@@ -48,6 +48,7 @@
       border-radius: 22px;
       text-align: center;
       box-shadow: 0 18px 60px rgba(0,0,0,.15);
+      overflow: hidden;
     }
 
     .art {
@@ -117,9 +118,10 @@
     }
 
     .fireworks {
-      width: min(380px, 90vw);
-      margin: 0 auto;
+      width: min(380px, 100%);
+      height: auto;
       display: block;
+      margin: 0 auto;
     }
 
     @keyframes pop {
@@ -278,25 +280,74 @@
       growYes();
     }
 
-    zone.addEventListener("pointermove", e => {
-      const b = noBtn.getBoundingClientRect();
-      const d = Math.hypot(
-        (b.left + b.width / 2) - e.clientX,
-        (b.top + b.height / 2) - e.clientY
-      );
-      if (d < 140) moveNo(e.clientX, e.clientY);
-    });
+   function moveNoFromEvent(e) {
+  const p = e.touches ? e.touches[0] : e;
+  moveNo(p.clientX, p.clientY);
+}
 
-    noBtn.addEventListener("click", e => e.preventDefault());
+// Desktop hover
+zone.addEventListener("pointermove", e => {
+  const b = noBtn.getBoundingClientRect();
+  const d = Math.hypot(
+    (b.left + b.width / 2) - e.clientX,
+    (b.top + b.height / 2) - e.clientY
+  );
+  if (d < 140) moveNo(e.clientX, e.clientY);
+});
 
-    /* ---------- YES CLICK ---------- */
-    yesBtn.addEventListener("click", () => {
-      zone.style.display = "none";
-      hint.style.display = "none";     // HIDE THE HINT
-      result.style.display = "block";
-      resizeConfettiCanvas();
-      fullScreenConfetti();
-    });
+// Mobile: when pressing "No"
+noBtn.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  moveNo(e.clientX, e.clientY);
+});
+
+// Mobile: finger moving in the zone
+function isNearNoButton(clientX, clientY, threshold = 160) {
+  const b = noBtn.getBoundingClientRect();
+  const cx = b.left + b.width / 2;
+  const cy = b.top + b.height / 2;
+  return Math.hypot(cx - clientX, cy - clientY) < threshold;
+}
+
+// Mobile: only trigger runaway if the touch is near "No"
+zone.addEventListener("touchstart", e => {
+  const t = e.touches && e.touches[0];
+  if (!t) return;
+
+  if (isNearNoButton(t.clientX, t.clientY)) {
+    e.preventDefault();
+    moveNo(t.clientX, t.clientY);
+  }
+}, { passive: false });
+
+zone.addEventListener("touchmove", e => {
+  const t = e.touches && e.touches[0];
+  if (!t) return;
+
+  if (isNearNoButton(t.clientX, t.clientY)) {
+    e.preventDefault();
+    moveNo(t.clientX, t.clientY);
+  }
+}, { passive: false });
+
+// Prevent normal click
+noBtn.addEventListener("click", e => e.preventDefault());
+
+  /* ---------- YES CLICK ---------- */
+function handleYes() {
+  zone.style.display = "none";
+  hint.style.display = "none";
+  result.style.display = "block";
+  resizeConfettiCanvas();
+  fullScreenConfetti();
+}
+
+// Works on desktop
+yesBtn.addEventListener("click", handleYes);
+
+// Works reliably on phones
+yesBtn.addEventListener("pointerup", handleYes);
+    
   </script>
 </body>
 </html>
